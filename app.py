@@ -5,7 +5,7 @@ A service that dynamically modulates synthesized speech based on detected
 text emotion. Features granular 6-emotion detection, intensity-scaled vocal
 modulation, SSML integration, and a polished web interface.
 
-Author: Kaustubh
+Author: Tanishq
 """
 
 import os
@@ -481,7 +481,7 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")
 
 
 @app.post("/api/synthesize")
