@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Empathy Engine 🎙</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface-2: #1a1a26;
+            --border: #2a2a3a;
+            --text: #e8e6f0;
+            --text-muted: #8a889a;
+            --accent: #7c6ff7;
+            --accent-glow: rgba(124, 111, 247, 0.3);
+            --joy: #f5c542;
+            --sadness: #5b8def;
+            --anger: #ef4444;
+            --fear: #a855f7;
+            --surprise: #f97316;
+            --neutral: #94a3b8;
+            --disgust: #22c55e;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Ambient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(124, 111, 247, 0.06) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
+            z-index: -1;
+            animation: ambientShift 20s ease-in-out infinite;
+        }
+
+        @keyframes ambientShift {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(-2%, 1%) rotate(1deg); }
+            66% { transform: translate(1%, -1%) rotate(-0.5deg); }
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 3rem 0 2.5rem;
+        }
+
+        header .badge {
+            display: inline-block;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent);
+            background: rgba(124, 111, 247, 0.1);
+            border: 1px solid rgba(124, 111, 247, 0.2);
+            padding: 0.35rem 1rem;
+            border-radius: 100px;
+            margin-bottom: 1.2rem;
+        }
+
+        h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2.8rem;
+            font-weight: 400;
+            line-height: 1.15;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #e8e6f0 0%, #b0a8e0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            max-width: 520px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Input Section */
+        .input-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: border-color 0.3s;
+        }
+
+        .input-section:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .input-section label {
+            display: block;
+            font-size: 0.75rem;
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            resize: vertical;
+            outline: none;
+        }
+
+        textarea::placeholder {
+            color: var(--text-muted);
+            opacity: 0.5;
+        }
+
+        .input-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .char-count {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .btn-synthesize {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.7rem 1.8rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-synthesize:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+
+        .btn-synthesize:active { transform: translateY(0); }
+
+        .btn-synthesize:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-synthesize .spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        .btn-synthesize.loading .spinner { display: inline-block; }
+        .btn-synthesize.loading .btn-text { opacity: 0.7; }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Quick Presets */
+        .presets {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .preset-chip {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.72rem;
+            padding: 0.4rem 0.9rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-chip:hover {
+            border-color: var(--accent);
+            color: var(--text);
+            background: var(--surface-2);
+        }
+
+        /* Results Section */
+        .results {
+            display: none;
+            animation: fadeUp 0.5s ease;
+        }
+
+        .results.visible { display: block; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Emotion Display */
+        .emotion-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .emotion-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .emotion-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            flex-shrink: 0;
+        }
+
+        .emotion-label {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.5rem;
+            text-transform: capitalize;
+        }
+
+        .emotion-meta {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        /* Emotion Bars */
+        .emotion-bars {
+            display: grid;
+            gap: 0.55rem;
+        }
+
+        .emotion-bar-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 45px;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .emotion-bar-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: capitalize;
+        }
+
+        .emotion-bar-track {
+            height: 6px;
+            background: var(--surface-2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .emotion-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+            width: 0%;
+        }
+
+        .emotion-bar-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        /* Vocal Parameters */
+        .vocal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .vocal-param {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .vocal-param-value {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.6rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .vocal-param-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        /* Audio Player */
+        .audio-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .audio-card h3 {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .audio-player {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .play-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+
+        .play-btn svg { fill: white; width: 18px; height: 18px; }
+
+        .waveform-container {
+            flex: 1;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .waveform-bar {
+            flex: 1;
+            min-width: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            transition: background 0.15s, height 0.3s;
+        }
+
+        .waveform-bar.active {
+            background: var(--accent);
+        }
+
+        .audio-time {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        audio { display: none; }
+
+        /* SSML Card */
+        .ssml-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .ssml-card h3 {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ssml-toggle {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.72rem;
+            color: var(--accent);
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .ssml-code {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.78rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+            background: var(--bg);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .ssml-code.visible { display: block; }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            h1 { font-size: 2rem; }
+            .vocal-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="badge">AI Voice Modulation</div>
+            <h1>The Empathy Engine</h1>
+            <p>Type any text below and hear it spoken with emotionally-tuned vocal parameters. The engine detects sentiment, scales intensity, and modulates pitch, rate, and emphasis in real-time.</p>
+        </header>
+
+        <!-- Presets -->
+        <div class="presets">
+            <button class="preset-chip" data-text="I just got promoted! This is the best day of my life, I can't believe it!">😄 Joyful</button>
+            <button class="preset-chip" data-text="I'm really disappointed. Nothing seems to be going right lately.">😢 Sad</button>
+            <button class="preset-chip" data-text="This is completely unacceptable! I've been waiting for three hours and nobody has helped me!">😡 Angry</button>
+            <button class="preset-chip" data-text="I'm worried about the upcoming deadline. What if we don't make it in time?">😰 Fearful</button>
+            <button class="preset-chip" data-text="Wait, what?! I had no idea that was even possible! That's incredible!">😲 Surprised</button>
+            <button class="preset-chip" data-text="The quarterly report has been submitted. Please review it at your convenience.">😐 Neutral</button>
+        </div>
+
+        <!-- Input -->
+        <div class="input-section">
+            <label>Enter your text</label>
+            <textarea id="textInput" placeholder="Type something emotional... or try a preset above." maxlength="5000"></textarea>
+            <div class="input-footer">
+                <span class="char-count"><span id="charCount">0</span> / 5000</span>
+                <button class="btn-synthesize" id="synthesizeBtn" onclick="handleSynthesize()">
+                    <span class="spinner"></span>
+                    <span class="btn-text">Synthesize Voice</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="results" id="results">
+            <!-- Emotion Detection -->
+            <div class="emotion-card">
+                <div class="emotion-header">
+                    <div class="emotion-icon" id="emotionIcon">😐</div>
+                    <div>
+                        <div class="emotion-label" id="emotionLabel">Neutral</div>
+                        <div class="emotion-meta" id="emotionMeta">confidence: 0.00 · intensity: 0.00 · backend: —</div>
+                    </div>
+                </div>
+                <div class="emotion-bars" id="emotionBars"></div>
+            </div>
+
+            <!-- Vocal Parameters -->
+            <div class="vocal-grid" id="vocalGrid">
+                <div class="vocal-param">
+                    <div class="vocal-param-value" id="vRate">175</div>
+                    <div class="vocal-param-label">Rate (wpm)</div>
+                </div>
+                <div class="vocal-param">
+                    <div class="vocal-param-value" id="vPitch">1.0×</div>
+                    <div class="vocal-param-label">Pitch</div>
+                </div>
+                <div class="vocal-param">
+                    <div class="vocal-param-value" id="vVolume">90%</div>
+                    <div class="vocal-param-label">Volume</div>
+                </div>
+                <div class="vocal-param">
+                    <div class="vocal-param-value" id="vEmphasis">mod</div>
+                    <div class="vocal-param-label">Emphasis</div>
+                </div>
+                <div class="vocal-param">
+                    <div class="vocal-param-value" id="vPause">300</div>
+                    <div class="vocal-param-label">Pause (ms)</div>
+                </div>
+            </div>
+
+            <!-- Audio Player -->
+            <div class="audio-card">
+                <h3>Audio Output</h3>
+                <div class="audio-player">
+                    <button class="play-btn" id="playBtn" onclick="togglePlay()">
+                        <svg id="playIcon" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+                        <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                    </button>
+                    <div class="waveform-container" id="waveform"></div>
+                    <span class="audio-time" id="audioTime">0:00</span>
+                </div>
+                <div id="engineInfo" style="margin-top:0.75rem;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--text-muted)"></div>
+                <audio id="audioEl"></audio>
+            </div>
+
+            <!-- SSML -->
+            <div class="ssml-card">
+                <h3>
+                    Generated SSML
+                    <button class="ssml-toggle" id="ssmlToggle" onclick="toggleSSML()">Show</button>
+                </h3>
+                <pre class="ssml-code" id="ssmlCode"></pre>
+            </div>
+        </div>
+
+        <footer>The Empathy Engine · Built with FastAPI, Transformers & Edge-TTS</footer>
+    </div>
+
+    <script>
+        // --- State ---
+        const textarea = document.getElementById('textInput');
+        const charCount = document.getElementById('charCount');
+        const audioEl = document.getElementById('audioEl');
+        let isPlaying = false;
+        let waveformBars = [];
+
+        // --- Char count ---
+        textarea.addEventListener('input', () => {
+            charCount.textContent = textarea.value.length;
+        });
+
+        // --- Presets ---
+        document.querySelectorAll('.preset-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                textarea.value = chip.dataset.text;
+                charCount.textContent = textarea.value.length;
+                textarea.focus();
+            });
+        });
+
+        // --- Emotion styling ---
+        const EMOTION_CONFIG = {
+            joy:      { icon: '😄', color: 'var(--joy)',      bg: 'rgba(245,197,66,0.12)' },
+            sadness:  { icon: '😢', color: 'var(--sadness)',   bg: 'rgba(91,141,239,0.12)' },
+            anger:    { icon: '😡', color: 'var(--anger)',     bg: 'rgba(239,68,68,0.12)' },
+            fear:     { icon: '😰', color: 'var(--fear)',      bg: 'rgba(168,85,247,0.12)' },
+            surprise: { icon: '😲', color: 'var(--surprise)',  bg: 'rgba(249,115,22,0.12)' },
+            disgust:  { icon: '🤢', color: 'var(--disgust)',   bg: 'rgba(34,197,94,0.12)' },
+            neutral:  { icon: '😐', color: 'var(--neutral)',   bg: 'rgba(148,163,184,0.12)' },
+        };
+
+        // --- Main handler ---
+        async function handleSynthesize() {
+            const text = textarea.value.trim();
+            if (!text) return;
+
+            const btn = document.getElementById('synthesizeBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            try {
+                const resp = await fetch('/api/synthesize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text }),
+                });
+
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.detail || 'Synthesis failed');
+                }
+
+                const data = await resp.json();
+                renderResults(data);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        function renderResults(data) {
+            const { emotion, vocal_config, ssml, audio_url } = data;
+            const cfg = EMOTION_CONFIG[emotion.primary_emotion] || EMOTION_CONFIG.neutral;
+
+            // Emotion header
+            document.getElementById('emotionIcon').textContent = cfg.icon;
+            document.getElementById('emotionIcon').style.background = cfg.bg;
+            document.getElementById('emotionLabel').textContent = emotion.primary_emotion;
+            document.getElementById('emotionLabel').style.color = cfg.color;
+            document.getElementById('emotionMeta').textContent =
+                `confidence: ${emotion.confidence.toFixed(2)} · intensity: ${emotion.intensity.toFixed(2)} · backend: ${emotion.backend}`;
+
+            // Emotion bars
+            const barsEl = document.getElementById('emotionBars');
+            barsEl.innerHTML = '';
+            const sorted = Object.entries(emotion.scores).sort((a, b) => b[1] - a[1]);
+            sorted.forEach(([emo, score]) => {
+                const ecfg = EMOTION_CONFIG[emo] || EMOTION_CONFIG.neutral;
+                const row = document.createElement('div');
+                row.className = 'emotion-bar-row';
+                row.innerHTML = `
+                    <span class="emotion-bar-label">${emo}</span>
+                    <div class="emotion-bar-track">
+                        <div class="emotion-bar-fill" style="background:${ecfg.color}"></div>
+                    </div>
+                    <span class="emotion-bar-value">${(score * 100).toFixed(1)}%</span>
+                `;
+                barsEl.appendChild(row);
+                // Animate bar
+                requestAnimationFrame(() => {
+                    row.querySelector('.emotion-bar-fill').style.width = `${score * 100}%`;
+                });
+            });
+
+            // Vocal params
+            document.getElementById('vRate').textContent = vocal_config.rate;
+            document.getElementById('vPitch').textContent = vocal_config.pitch.toFixed(2) + '×';
+            document.getElementById('vVolume').textContent = Math.round(vocal_config.volume * 100) + '%';
+            document.getElementById('vEmphasis').textContent = vocal_config.emphasis;
+            document.getElementById('vPause').textContent = vocal_config.pause_ms;
+
+            // Color the vocal params based on emotion
+            document.querySelectorAll('.vocal-param-value').forEach(el => {
+                el.style.color = cfg.color;
+            });
+
+            // Audio
+            audioEl.src = audio_url;
+            audioEl.load();
+            isPlaying = false;
+            updatePlayButton();
+            buildWaveform();
+
+            // Show TTS engine used
+            const engineEl = document.getElementById('engineInfo');
+            engineEl.textContent = data.tts_engine ? `Engine: ${data.tts_engine}` : '';
+
+            // SSML
+            document.getElementById('ssmlCode').textContent = ssml;
+
+            // Show results
+            document.getElementById('results').classList.add('visible');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // --- Audio Player ---
+        function togglePlay() {
+            if (audioEl.paused) {
+                audioEl.play();
+                isPlaying = true;
+            } else {
+                audioEl.pause();
+                isPlaying = false;
+            }
+            updatePlayButton();
+        }
+
+        function updatePlayButton() {
+            document.getElementById('playIcon').style.display = isPlaying ? 'none' : 'block';
+            document.getElementById('pauseIcon').style.display = isPlaying ? 'block' : 'none';
+        }
+
+        audioEl.addEventListener('ended', () => {
+            isPlaying = false;
+            updatePlayButton();
+        });
+
+        audioEl.addEventListener('timeupdate', () => {
+            const pct = audioEl.duration ? audioEl.currentTime / audioEl.duration : 0;
+            const activeIdx = Math.floor(pct * waveformBars.length);
+            waveformBars.forEach((bar, i) => {
+                bar.classList.toggle('active', i <= activeIdx);
+            });
+            const mins = Math.floor(audioEl.currentTime / 60);
+            const secs = Math.floor(audioEl.currentTime % 60);
+            document.getElementById('audioTime').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+        });
+
+        function buildWaveform() {
+            const container = document.getElementById('waveform');
+            container.innerHTML = '';
+            waveformBars = [];
+            const count = 60;
+            for (let i = 0; i < count; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'waveform-bar';
+                // Pseudo-random heights for visual interest
+                const h = 20 + Math.sin(i * 0.7) * 15 + Math.cos(i * 1.3) * 10 + Math.random() * 8;
+                bar.style.height = `${Math.max(4, Math.min(48, h))}px`;
+                container.appendChild(bar);
+                waveformBars.push(bar);
+            }
+        }
+
+        // --- SSML Toggle ---
+        function toggleSSML() {
+            const code = document.getElementById('ssmlCode');
+            const btn = document.getElementById('ssmlToggle');
+            code.classList.toggle('visible');
+            btn.textContent = code.classList.contains('visible') ? 'Hide' : 'Show';
+        }
+
+        // Init waveform
+        buildWaveform();
+    </script>
+</body>
+</html>
